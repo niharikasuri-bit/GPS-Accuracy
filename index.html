@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Capture location – GPS accuracy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --brand: #C84C0E;
+    --blue: #1565C0;
+    --primary-2: #0B4B66;
+    --ink: #1A1C1E;
+    --muted: #5F6368;
+    --line: #E3E5E8;
+    --good: #0B6B32; --good-soft: #E8F5EC;
+    --fair: #9A4A00; --fair-soft: #FEF3E2;
+    --bad:  #B3261E; --bad-soft:  #FDEDEC;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; font-family: Roboto, system-ui, sans-serif; color: var(--ink);
+    background: #EDEFF2; display: flex; gap: 48px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 24px;
+  }
+
+  /* ---------- Phone frame (demo only) ---------- */
+  .phone {
+    width: 360px; height: 740px; border-radius: 40px; background: #F6F7F9; position: relative; overflow: hidden;
+    box-shadow: 0 0 0 10px #1d1d1f, 0 30px 60px rgba(0,0,0,.25);
+  }
+  .form { padding: 28px 16px; }
+  .form h1 { font-size: 20px; font-weight: 500; margin: 0 0 20px; }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 14px; margin-bottom: 6px; color: var(--muted); }
+  .field .input { height: 44px; background: #fff; border: 1px solid #C4C7CC; border-radius: 6px; }
+  .scrim { position: absolute; inset: 0; background: rgba(20,22,26,.45); }
+
+  /* ---------- Popup ---------- */
+  .popup {
+    position: absolute; left: 20px; right: 20px; top: 50%; transform: translateY(-50%);
+    background: #fff; border-radius: 12px; padding: 14px 16px 16px; box-shadow: 0 16px 40px rgba(0,0,0,.25);
+    --c: var(--muted); --soft: #F1F3F5;
+  }
+  .popup.bad  { --c: var(--bad);  --soft: var(--bad-soft); }
+  .popup.fair { --c: var(--fair); --soft: var(--fair-soft); }
+  .popup.good { --c: var(--good); --soft: var(--good-soft); }
+
+  .popup-head { display: flex; align-items: center; justify-content: space-between; }
+  .popup h2 { font-size: 24px; font-weight: 500; margin: 0; color: var(--primary-2); }
+  .close {
+    width: 32px; height: 32px; margin-right: -8px; display: grid; place-items: center; border: 0; border-radius: 50%;
+    background: none; color: var(--muted); cursor: pointer;
+  }
+  .close:hover { background: #F1F3F5; }
+  .close svg { width: 20px; height: 20px; }
+
+
+
+  /* Live signal: pin pulses while capturing; colour = accuracy (red → amber → green) */
+  .reading { margin-top: 12px; padding: 12px; border-radius: 8px; background: #FAFAFA; border: 1px solid var(--line); }
+  .signal { display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; }
+  .pin { position: relative; width: 52px; height: 52px; display: grid; place-items: center; }
+  .pin::before, .pin::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--c); opacity: 0;
+    animation: ping 2s ease-out infinite;
+  }
+  .pin::after { animation-delay: 1s; }
+  .pin svg { position: relative; width: 30px; height: 30px; color: var(--c); }
+  @keyframes ping { 0% { transform: scale(.4); opacity: .35; } 100% { transform: scale(1.1); opacity: 0; } }
+
+  .value { margin-top: 6px; font-size: 32px; font-weight: 700; line-height: 1; color: var(--c); font-variant-numeric: tabular-nums; }
+  .value .unit { font-size: 16px; font-weight: 500; margin-left: 2px; }
+  .status {
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; padding: 2px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 500; color: var(--c); background: var(--soft);
+  }
+  .status svg { width: 14px; height: 14px; }
+
+  /* Minor info: small, muted, with icons */
+  .meta { display: flex; justify-content: center; gap: 16px; margin: -2px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .meta li { display: flex; align-items: center; gap: 4px; }
+  .meta svg { width: 14px; height: 14px; }
+
+  .rule { margin: 2px 0 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
+  .rule b { color: var(--ink); font-weight: 500; }
+  /* Tip sits inside the reading box, only while accuracy is low */
+  .tip {
+    display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line);
+    font-size: 13px; line-height: 1.4; color: var(--primary-2);
+  }
+  .tip[hidden] { display: none; }
+  .tip svg { flex: none; width: 16px; height: 16px; margin-top: 1px; color: var(--primary-2); }
+  .tip p { margin: 0; }
+
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  .btn {
+    flex: 1; height: 32px; border-radius: 4px; font: 500 14px Roboto, sans-serif; cursor: pointer;
+    border: 1px solid var(--brand); background: #fff; color: var(--brand);
+  }
+  .btn.primary { background: var(--brand); color: #fff; }
+  .btn:disabled { background: #ECEEF0; border-color: #ECEEF0; color: #80868B; cursor: not-allowed; }
+  .btn:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .toast {
+    position: absolute; left: 16px; right: 16px; bottom: 28px; background: var(--ink); color: #fff; padding: 14px 16px;
+    border-radius: 10px; font-size: 14px; display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) { .pin::before, .pin::after { animation-duration: 5s; } }
+
+  /* ---------- Demo panel ---------- */
+  .panel { width: 280px; background: #fff; border-radius: 14px; padding: 20px; font-size: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+  .panel h2 { font-size: 15px; margin: 0 0 4px; }
+  .panel p { color: var(--muted); margin: 0 0 14px; line-height: 1.4; font-size: 13px; }
+  .panel label { display: block; font-weight: 500; margin-bottom: 6px; }
+  .panel input[type=range] { width: 100%; accent-color: var(--brand); }
+  .panel .row { display: flex; gap: 8px; margin-top: 14px; }
+  .panel button { flex: 1; padding: 9px; border: 1px solid var(--line); background: #fff; border-radius: 8px; cursor: pointer; font: 500 13px Roboto; }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="form" aria-hidden="true">
+    <h1>Transit session</h1>
+    <div class="field"><label>Site name *</label><div class="input"></div></div>
+    <div class="field"><label>Landmark *</label><div class="input"></div></div>
+    <div class="field"><label>GPS location *</label><div class="input"></div></div>
+  </div>
+  <div class="scrim"></div>
+
+  <section class="popup" id="popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle" aria-describedby="rule">
+    <div class="popup-head">
+      <h2 id="popupTitle">Capturing location</h2>
+      <button class="close" id="close" type="button" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <p class="rule" id="rule">The number shows how far the saved point may be from where you are standing. You can save once it is <b>5 m or less</b>.</p>
+
+    <div class="reading">
+    <div class="signal">
+      <div class="pin" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg>
+      </div>
+      <div class="value"><span id="acc">--</span><span class="unit">m</span></div>
+      <div class="status">
+        <svg id="statusIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"></svg>
+        <span id="statusText">Searching…</span>
+      </div>
+    </div>
+
+    <ul class="meta">
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span class="sr-only">Time elapsed</span><span id="time">00:00</span>
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 7 9 3 5 7l4 4"/><path d="m17 11 4 4-4 4-4-4"/><path d="m8 12 4 4 6-6-4-4Z"/><path d="m16 8 3-3"/><path d="M9 21a6 6 0 0 0-6-6"/></svg>
+        <span id="sats">0</span>&nbsp;satellites
+      </li>
+    </ul>
+    <div class="tip" id="tip" role="note">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 21h6v-1H9v1zm3-19a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2z"/></svg>
+      <p>Move to an open area, away from buildings and trees.</p>
+    </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="cancel" type="button">Cancel</button>
+      <button class="btn primary" id="save" type="button" disabled>Save</button>
+    </div>
+
+    <p class="sr-only" aria-live="polite" id="live"></p>
+  </section>
+
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<aside class="panel">
+  <h2>Demo controls</h2>
+  <p>Simulates a GPS fix improving over time. Drag to force a value.</p>
+  <label for="slider">Accuracy: <span id="sliderVal">auto</span></label>
+  <input type="range" id="slider" min="1" max="30" step="0.1" value="30" />
+  <div class="row">
+    <button id="auto" type="button">Auto</button>
+    <button id="restart" type="button">Restart</button>
+  </div>
+</aside>
+
+<script>
+  const THRESHOLD = 5;   // metres: at or below = green, saveable
+  const FAIR = 10;       // metres: between THRESHOLD and this = amber
+
+  const $ = id => document.getElementById(id);
+  const popup = $('popup'), saveBtn = $('save'), live = $('live');
+
+  const ICON_OK  = '<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 15-5-5 1.4-1.4 3.6 3.6 7.6-7.6L19 8l-9 9z"/>';
+  const ICON_BAD = '<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>';
+  const ICON_FAIR = '<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18V4a8 8 0 0 1 0 16z"/>';
+
+  const STATES = {
+    search: { label: 'Searching…',    icon: '' },
+    bad:    { label: 'Low accuracy',  icon: ICON_BAD },
+    fair:   { label: 'Getting closer', icon: ICON_FAIR },
+    good:   { label: 'Good accuracy', icon: ICON_OK },
+  };
+
+  let accuracy = null, seconds = 0, sats = 0, manual = false, lastState = null, timer;
+
+  function render() {
+    const state = accuracy === null ? 'search' : accuracy <= THRESHOLD ? 'good' : accuracy <= FAIR ? 'fair' : 'bad';
+    const good = state === 'good';
+
+    popup.classList.remove('bad', 'fair', 'good');
+    popup.classList.add(state);
+    $('acc').textContent = accuracy === null ? '--' : accuracy.toFixed(1);
+
+    $('statusIcon').innerHTML = STATES[state].icon;
+    $('statusText').textContent = STATES[state].label;
+    saveBtn.disabled = !good;
+    $('tip').hidden = good;
+
+    $('time').textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
+    $('sats').textContent = sats;
+
+    if (state !== lastState && state !== 'search') {
+      live.textContent = good
+        ? `Good accuracy, ${accuracy.toFixed(1)} metres. Ready to save.`
+        : `${STATES[state].label}, ${accuracy.toFixed(1)} metres. You can save once accuracy is ${THRESHOLD} metres or less.`;
+      lastState = state;
+    }
+  }
+
+  function tick() {
+    seconds++;
+    sats = Math.min(12, Math.floor(seconds / 3));
+    if (!manual) {
+      const base = 3 + 25 * Math.exp(-seconds / 12);
+      accuracy = Math.max(1, base + (Math.random() - 0.5) * 1.5);
+    }
+    render();
+  }
+
+  function start() {
+    clearInterval(timer);
+    seconds = 0; sats = 0; accuracy = null; lastState = null; manual = false;
+    $('slider').value = 30; $('sliderVal').textContent = 'auto';
+    $('toast').style.display = 'none';
+    popup.style.display = '';
+    render();
+    timer = setInterval(tick, 1000);
+  }
+
+  function finish(msg) {
+    clearInterval(timer);
+    popup.style.display = 'none';
+    $('toast').textContent = msg;
+    $('toast').style.display = 'block';
+  }
+
+  saveBtn.onclick = () => finish(`Location saved (${accuracy.toFixed(1)} m)`);
+  $('cancel').onclick = $('close').onclick = () => finish('Location capture cancelled');
+
+  $('slider').oninput = e => {
+    manual = true; accuracy = +e.target.value;
+    $('sliderVal').textContent = accuracy.toFixed(1) + ' m';
+    render();
+  };
+  $('auto').onclick = () => { manual = false; $('sliderVal').textContent = 'auto'; };
+  $('restart').onclick = start;
+
+  start();
+</script>
+</body>
+</html>
