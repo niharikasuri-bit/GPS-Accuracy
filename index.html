@@ -130,7 +130,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
     </div>
-    <p class="rule" id="rule">The number shows how far the saved point may be from where you are standing. You can save once it is <b>5 m or less</b>.</p>
+    <p class="rule" id="rule">Location is required for this form, so please wait while we capture it. You can save once accuracy is <b>10 m or less</b>; 5 m or less is best.</p>
 
     <div class="reading">
     <div class="signal">
@@ -179,8 +179,8 @@
 </aside>
 
 <script>
-  const THRESHOLD = 5;   // metres: at or below = green, saveable
-  const FAIR = 10;       // metres: between THRESHOLD and this = amber
+  const THRESHOLD = 5;   // metres: at or below = green (best)
+  const FAIR = 10;       // metres: at or below = amber; saving allowed from here
 
   const $ = id => document.getElementById(id);
   const popup = $('popup'), saveBtn = $('save'), live = $('live');
@@ -192,7 +192,7 @@
   const STATES = {
     search: { label: 'Searching…',    icon: '' },
     bad:    { label: 'Low accuracy',  icon: ICON_BAD },
-    fair:   { label: 'Getting closer', icon: ICON_FAIR },
+    fair:   { label: 'Fair accuracy', icon: ICON_FAIR },
     good:   { label: 'Good accuracy', icon: ICON_OK },
   };
 
@@ -200,7 +200,7 @@
 
   function render() {
     const state = accuracy === null ? 'search' : accuracy <= THRESHOLD ? 'good' : accuracy <= FAIR ? 'fair' : 'bad';
-    const good = state === 'good';
+    const canSave = state === 'good' || state === 'fair';
 
     popup.classList.remove('bad', 'fair', 'good');
     popup.classList.add(state);
@@ -208,15 +208,15 @@
 
     $('statusIcon').innerHTML = STATES[state].icon;
     $('statusText').textContent = STATES[state].label;
-    saveBtn.disabled = !good;
+    saveBtn.disabled = !canSave;
 
     $('time').textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
     $('sats').textContent = sats;
 
     if (state !== lastState && state !== 'search') {
-      live.textContent = good
-        ? `Good accuracy, ${accuracy.toFixed(1)} metres. Ready to save.`
-        : `${STATES[state].label}, ${accuracy.toFixed(1)} metres. You can save once accuracy is ${THRESHOLD} metres or less.`;
+      live.textContent = canSave
+        ? `${STATES[state].label}, ${accuracy.toFixed(1)} metres. You can save now.`
+        : `${STATES[state].label}, ${accuracy.toFixed(1)} metres. Please wait, you can save once accuracy is ${FAIR} metres or less.`;
       lastState = state;
     }
   }
