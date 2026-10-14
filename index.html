@@ -84,14 +84,6 @@
 
   .rule { margin: 2px 0 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
   .rule b { color: var(--ink); font-weight: 500; }
-  /* Tip sits inside the reading box, only while accuracy is low */
-  .tip {
-    display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line);
-    font-size: 13px; line-height: 1.4; color: var(--primary-2);
-  }
-  .tip[hidden] { display: none; }
-  .tip svg { flex: none; width: 16px; height: 16px; margin-top: 1px; color: var(--primary-2); }
-  .tip p { margin: 0; }
 
   .actions { display: flex; gap: 10px; margin-top: 14px; }
   .btn {
@@ -162,10 +154,6 @@
         <span id="sats">0</span>&nbsp;satellites
       </li>
     </ul>
-    <div class="tip" id="tip" role="note">
-      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 21h6v-1H9v1zm3-19a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2z"/></svg>
-      <p>Move to an open area, away from buildings and trees.</p>
-    </div>
     </div>
 
     <div class="actions">
@@ -221,7 +209,6 @@
     $('statusIcon').innerHTML = STATES[state].icon;
     $('statusText').textContent = STATES[state].label;
     saveBtn.disabled = !good;
-    $('tip').hidden = good;
 
     $('time').textContent = String(Math.floor(seconds / 60)).padStart(2, '0') + ':' + String(seconds % 60).padStart(2, '0');
     $('sats').textContent = sats;
