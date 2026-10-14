@@ -39,7 +39,7 @@
   /* ---------- Popup ---------- */
   .popup {
     position: absolute; left: 20px; right: 20px; top: 50%; transform: translateY(-50%);
-    background: #fff; border-radius: 12px; padding: 14px 16px 16px; box-shadow: 0 16px 40px rgba(0,0,0,.25);
+    background: #fff; border-radius: 12px; padding: 18px 16px 16px; box-shadow: 0 16px 40px rgba(0,0,0,.25);
     --c: var(--muted); --soft: #F1F3F5;
   }
   .popup.bad  { --c: var(--bad);  --soft: var(--bad-soft); }
@@ -48,12 +48,6 @@
 
   .popup-head { display: flex; align-items: center; justify-content: space-between; }
   .popup h2 { font-size: 24px; font-weight: 500; margin: 0; color: var(--primary-2); }
-  .close {
-    width: 32px; height: 32px; margin-right: -8px; display: grid; place-items: center; border: 0; border-radius: 50%;
-    background: none; color: var(--muted); cursor: pointer;
-  }
-  .close:hover { background: #F1F3F5; }
-  .close svg { width: 20px; height: 20px; }
 
 
 
@@ -126,9 +120,6 @@
   <section class="popup" id="popup" role="dialog" aria-modal="true" aria-labelledby="popupTitle" aria-describedby="rule">
     <div class="popup-head">
       <h2 id="popupTitle">Capturing location</h2>
-      <button class="close" id="close" type="button" aria-label="Close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-      </button>
     </div>
     <p class="rule" id="rule">Location is required for this form, so please wait while we capture it. You can save once accuracy is <b>10 m or less</b>; 5 m or less is best.</p>
 
@@ -157,7 +148,6 @@
     </div>
 
     <div class="actions">
-      <button class="btn" id="cancel" type="button">Cancel</button>
       <button class="btn primary" id="save" type="button" disabled>Save</button>
     </div>
 
@@ -249,7 +239,6 @@
   }
 
   saveBtn.onclick = () => finish(`Location saved (${accuracy.toFixed(1)} m)`);
-  $('cancel').onclick = $('close').onclick = () => finish('Location capture cancelled');
 
   $('slider').oninput = e => {
     manual = true; accuracy = +e.target.value;
