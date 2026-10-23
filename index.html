@@ -154,8 +154,12 @@
 
     <ul class="meta">
       <li>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-        <span class="sr-only">Time remaining</span><span id="time">02:00</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.17a2 2 0 0 0-.59-1.42L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22"/><path d="M7 2v4.17a2 2 0 0 0 .59 1.42L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2"/></svg>
+        <span>Time left <span id="time">02:00</span></span>
+      </li>
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 7 9 3 5 7l4 4"/><path d="m17 11 4 4-4 4-4-4"/><path d="m8 12 4 4 6-6-4-4Z"/><path d="m16 8 3-3"/><path d="M9 21a6 6 0 0 0-6-6"/></svg>
+        <span id="sats">0</span>&nbsp;satellites
       </li>
     </ul>
     </div>
@@ -218,7 +222,7 @@
     timeout: 'We could not get an accurate location this time. Move to an open area and try again.',
   };
 
-  let accuracy = null, seconds = 0, manual = false, lastState = null, timedOut = false, timer;
+  let accuracy = null, seconds = 0, sats = 0, manual = false, lastState = null, timedOut = false, timer;
 
   function render() {
     let state = accuracy === null ? 'search' : accuracy <= THRESHOLD ? 'good' : accuracy <= FAIR ? 'fair' : 'bad';
@@ -240,6 +244,7 @@
     $('nudge').hidden = state !== 'fair';
     $('info').hidden = !['bad', 'badLate', 'timeout'].includes(hintKey);
     $('infoText').textContent = HINTS[hintKey] || '';
+    $('sats').textContent = sats;
     const left = TIMEOUT - seconds;
     $('time').textContent = String(Math.floor(left / 60)).padStart(2, '0') + ':' + String(left % 60).padStart(2, '0');
 
@@ -257,6 +262,7 @@
   function tick() {
     seconds++;
     if (seconds >= TIMEOUT) { seconds = TIMEOUT; timedOut = true; clearInterval(timer); }
+    sats = Math.min(12, Math.floor(seconds / 3));
     if (!manual) {
       const base = 3 + 25 * Math.exp(-seconds / 12);
       accuracy = Math.max(1, base + (Math.random() - 0.5) * 1.5);
@@ -266,7 +272,7 @@
 
   function start() {
     clearInterval(timer);
-    seconds = 0; accuracy = null; lastState = null; manual = false; timedOut = false;
+    seconds = 0; sats = 0; accuracy = null; lastState = null; manual = false; timedOut = false;
     $('slider').value = 30; $('sliderVal').textContent = 'auto';
     $('toast').style.display = 'none';
     popup.style.display = '';
